@@ -1,0 +1,906 @@
+<template>
+
+  <div class="card-types">
+
+    <div class="toolbar">
+
+      <el-button type="primary" :icon="Plus" @click="createCardType">
+
+        新建卡片类型
+
+      </el-button>
+
+      <el-button :icon="Refresh" @click="loadCardTypes">
+
+        刷新列表
+
+      </el-button>
+
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索卡片类型..."
+        :prefix-icon="Search"
+        clearable
+        style="width: 300px; margin-left: 20px"
+        @change="loadCardTypes"
+      />
+
+    </div>
+
+
+    <div v-loading="loading" class="card-types-grid">
+      <div v-if="filteredCardTypes.length === 0" class="empty-state">
+        <el-empty description="暂无卡片类型，请点击新建" :image-size="150" />
+      </div>
+      <div v-else class="grid-items">
+        <el-card
+          v-for="type in filteredCardTypes"
+          :key="type.id"
+          class="type-card"
+          :body-style="{ padding: '20px' }"
+        >
+          <template #header>
+            <div class="card-header">
+              <div class="header-left">
+                <el-tag :type="getTypeColor(type)" size="small">
+                  {{ type.name }}
+                </el-tag>
+                <span class="type-id">ID: {{ type.id }}</span>
+              </div>
+              <div class="header-actions">
+                <el-button
+                  type="info"
+                  size="small"
+                  :icon="View"
+                  @click="previewCardType(type)"
+                >
+                  预览
+                </el-button>
+                <el-button
+                  type="primary"
+                  size="small"
+                  :icon="Edit"
+                  @click="editCardType(type)"
+                >
+                  编辑
+                </el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                  :icon="Delete"
+                  @click="deleteCardType(type.id)"
+                >
+                  删除
+                </el-button>
+              </div>
+            </div>
+          </template>
+            <div class="card-type-content">
+              <div class="content-section">
+                <h4>模板JSON</h4>
+                <div class="json-container">
+                  <pre class="json-schema">{{ formatJson(type.json_schema) }}</pre>
+                </div>
+                <div class="json-buttons">
+                  <el-button
+                    v-if="isJsonCollapsed(type.json_schema)"
+                    type="text"
+                    size="small"
+                    class="expand-btn"
+                    @click="expandJson(type.json_schema)"
+                  >
+                    展开完整结构
+                  </el-button>
+                  <el-button
+                    v-if="!isJsonCollapsed(type.json_schema)"
+                    type="text"
+                    size="small"
+                    class="collapse-btn"
+                    @click="collapseJson(type.json_schema)"
+                  >
+                    收起结构
+                  </el-button>
+                </div>
+              </div>
+
+              <div class="content-section">
+                <h4>描述</h4>
+                <p class="description">{{ type.description || '无描述' }}</p>
+              </div>
+
+              <div class="content-section">
+                <h4>创建时间</h4>
+                <span class="date">{{ formatDate(type.created_at) }}</span>
+              </div>
+            </div>
+        </el-card>
+      </div>
+    </div>
+
+
+    <!-- 卡片类型编辑对话框 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="70%"
+      destroy-on-close
+    >
+      <!-- 卡片类型预览对话框 -->
+      <el-dialog
+        v-model="previewVisible"
+        title="卡片类型预览"
+        width="80%"
+        destroy-on-close
+      >
+        <div class="preview-container">
+          <el-alert
+            title="预览说明"
+            type="info"
+            :closable="false"
+            style="margin-bottom: 20px"
+          >
+            以下是使用此卡片类型的实际卡片模板预览
+          </el-alert>
+
+          <div class="preview-card">
+            <h3>{{ previewCardData.name }}</h3>
+            <p v-if="previewCardData.description" class="preview-description">
+              {{ previewCardData.description }}
+            </p>
+
+            <div class="preview-schema">
+              <h4>Card Structure Preview</h4>
+              <pre class="json-schema">{{ formatJson(previewCardData.json_schema) }}</pre>
+            </div>
+          </div>
+
+          <div class="preview-actions">
+            <el-button type="primary" @click="createCardFromTemplate">
+              使用此模板创建卡片
+            </el-button>
+            <el-button @click="previewVisible = false">关闭</el-button>
+          </div>
+        </div>
+      </el-dialog>
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="120px"
+      >
+        <el-form-item label="类型名称" prop="name">
+          <el-input
+            v-model="form.name"
+            placeholder="请输入类型名称"
+            maxlength="50"
+            show-word-limit
+          />
+        </el-form-item>
+
+        <el-form-item label="类型描述" prop="description">
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入类型描述"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+
+        <el-form-item label="模板JSON" prop="json_schema">
+          <el-input
+            v-model="form.json_schema"
+            type="textarea"
+            :rows="15"
+            placeholder="{}"
+            @input="validateJsonSchema"
+          />
+          <div v-if="jsonError" class="json-error">
+            <el-alert :title="jsonError" type="error" :closable="false" />
+          </div>
+          <div v-else class="json-hint">
+            <el-alert title="JSON Schema format, used to define field structure" type="info" :closable="false" />
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveCardType" :loading="saving">
+          保存
+        </el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+
+
+<script setup lang="ts">
+
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Plus,
+  Refresh,
+  Search,
+  Edit,
+  Delete,
+  Document,
+  Folder,
+  View
+} from '@element-plus/icons-vue'
+import axios from 'axios'
+import type { FormInstance, FormRules } from 'element-plus'
+
+
+const router = useRouter()
+const loading = ref(false)
+const saving = ref(false)
+const searchQuery = ref('')
+const cardTypes = ref<any[]>([])
+const dialogVisible = ref(false)
+const dialogTitle = ref('新建卡片类型')
+const previewVisible = ref(false)
+const previewCardData = ref<any>({
+  id: 0,
+  name: '',
+  description: '',
+  json_schema: {}
+})
+
+const collapsedJsons = ref(new Set<string>())
+const formRef = ref<FormInstance>()
+const jsonError = ref('')
+
+
+const form = ref({
+  id: 0,
+  name: '',
+  description: '',
+  json_schema: '{}'
+})
+
+const validateJson = (_rule: any, value: string, callback: any) => {
+  try {
+    JSON.parse(value)
+    callback()
+  } catch (e: any) {
+    callback(new Error('JSON格式错误: ' + e.message))
+  }
+}
+const rules: FormRules = {
+  name: [
+    { required: true, message: '请输入类型名称', trigger: 'blur' },
+    { min: 1, max: 50, message: '类型名称长度在1到50个字符', trigger: 'blur' }
+  ],
+  description: [
+    { max: 200, message: '类型描述不能超过200个字符', trigger: 'blur' }
+  ],
+  json_schema: [
+    { required: true, message: '请输入JSON Schema', trigger: 'blur' },
+    { validator: validateJson, trigger: 'blur' }
+  ]
+}
+
+
+const filteredCardTypes = computed(() => {
+  if (!searchQuery.value) return cardTypes.value
+  const query = searchQuery.value.toLowerCase()
+  return cardTypes.value.filter((t) =>
+    t.name.toLowerCase().includes(query) ||
+    t.description && t.description.toLowerCase().includes(query)
+  )
+})
+
+
+const getTypeColor = (type: any) => {
+  const typeColors: Record<string, string> = {
+    '需求卡': 'primary',
+    '设计卡': 'success',
+    '功能卡': 'warning',
+    '测试卡': 'danger',
+    '文档卡': 'info'
+  }
+  return typeColors[type.name] || 'info'
+}
+
+
+const loadCardTypes = async () => {
+  loading.value = true
+  console.log('开始加载卡片类型...')
+  try {
+    console.log('正在请求:', 'http://localhost:8888/api/v1/card-types')
+    const response = await axios.get('http://localhost:8888/api/v1/card-types')
+    console.log('响应成功:', response.data)
+    console.log('卡片类型数量:', response.data?.length || 0)
+    cardTypes.value = response.data || []
+    console.log('cardTypes.value 已更新:', cardTypes.value.length, '个项目')
+  } catch (error) {
+    console.error('加载卡片类型失败:', error)
+    if (error.response) {
+      console.error('响应状态:', error.response.status)
+      console.error('响应数据:', error.response.data)
+    } else if (error.request) {
+      console.error('无响应:', error.request)
+    } else {
+      console.error('请求错误:', error.message)
+    }
+    ElMessage.error('加载卡片类型失败')
+  } finally {
+    loading.value = false
+    console.log('加载完成, loading.value:', loading.value)
+  }
+}
+
+
+const createCardType = () => {
+  dialogTitle.value = '新建卡片类型'
+  form.value = {
+    id: 0,
+    name: '',
+    description: '',
+    json_schema: JSON.stringify({
+      type: 'object',
+      properties: {},
+      required: []
+    }, null, 2)
+  }
+  jsonError.value = ''
+  dialogVisible.value = true
+}
+
+
+const editCardType = (type: any) => {
+  dialogTitle.value = '编辑卡片类型'
+  form.value = {
+    id: type.id,
+    name: type.name,
+    description: type.description,
+    json_schema: JSON.stringify(type.json_schema, null, 2)
+  }
+  jsonError.value = ''
+  dialogVisible.value = true
+}
+
+
+ const validateJsonSchema = () => {
+  try {
+    JSON.parse(form.value.json_schema)
+    jsonError.value = ''
+  } catch (e: any) {
+    jsonError.value = 'JSON格式错误: ' + e.message
+  }
+}
+
+const saveCardType = async () => {
+  try {
+    // 验证表单
+    await formRef.value?.validate()
+
+    // 解析JSON schema
+    const json_schema = JSON.parse(form.value.json_schema)
+
+    // 确保json_schema是对象
+    if (typeof json_schema !== 'object' || json_schema === null) {
+      throw new Error('JSON Schema必须是有效的对象类型')
+    }
+
+    // 准备请求数据
+    const endpoint = form.value.id ? `/api/v1/card-types/${form.value.id}` : '/api/v1/card-types'
+    const method = form.value.id ? 'put' : 'post'
+
+    const response = await axios[method](endpoint, {
+      name: form.value.name,
+      description: form.value.description,
+      json_schema: json_schema
+    })
+
+    ElMessage.success(form.value.id ? '更新成功' : '创建成功')
+    dialogVisible.value = false
+    await loadCardTypes()
+
+  } catch (error: any) {
+    console.error('保存失败:', error)
+    if (error.response) {
+      ElMessage.error('保存失败: ' + (error.response.data?.detail || error.message))
+    } else if (error.message) {
+      ElMessage.error('保存失败: ' + error.message)
+    } else {
+      ElMessage.error('保存失败')
+    }
+  }
+}
+
+const isJsonCollapsed = (obj: any) => {
+  if (!obj) return false
+  try {
+    const jsonString = typeof obj === 'string' ? obj : JSON.stringify(obj)
+    return collapsedJsons.value.has(jsonString) && jsonString.length > 200
+  } catch (e) {
+    return false
+  }
+}
+
+const expandJson = (obj: any) => {
+  if (!obj) return
+  try {
+    const jsonString = typeof obj === 'string' ? obj : JSON.stringify(obj)
+    collapsedJsons.value.delete(jsonString)
+  } catch (e) {
+    console.log('展开JSON失败:', e)
+  }
+}
+
+const collapseJson = (obj: any) => {
+  if (!obj) return
+  try {
+    const jsonString = typeof obj === 'string' ? obj : JSON.stringify(obj)
+    if (jsonString.length > 200) {
+      collapsedJsons.value.add(jsonString)
+    }
+  } catch (e) {
+    console.log('收起JSON失败:', e)
+  }
+}
+
+const deleteCardType = async (id: number) => {
+  try {
+    await axios.delete(`http://localhost:8888/api/v1/card-types/${id}`)
+    ElMessage.success('删除成功')
+    await loadCardTypes()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+
+const previewCardType = (type: any) => {
+  previewCardData.value = {
+    id: type.id,
+    name: type.name,
+    description: type.description,
+    json_schema: type.json_schema || {}
+  }
+  previewVisible.value = true
+}
+
+
+const createCardFromTemplate = () => {
+  previewVisible.value = false
+
+  // 跳转到卡片创建页面并传递卡片类型ID
+  router.push(`/cards/create?project_id=0`)
+  ElMessage.info('请选择要创建卡片的项目，然后填写卡片信息', {
+    duration: 3000,
+    offset: 60
+  })
+}
+
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN')
+}
+
+const formatJson = (obj: any) => {
+  if (!obj) return '{}'
+  try {
+    const parsedObj = typeof obj === 'string' ? JSON.parse(obj) : obj
+    const jsonString = JSON.stringify(parsedObj, null, 2)
+
+    // 如果JSON被折叠，只显示前几行
+    if (isJsonCollapsed(obj)) {
+      const lines = jsonString.split('\n')
+      if (lines.length > 8) {
+        return lines.slice(0, 6).join('\n') + '\n  ...\n}'
+      }
+    }
+    return jsonString
+  } catch (e) {
+    return String(obj)
+  }
+}
+
+
+onMounted(() => {
+  loadCardTypes()
+})
+</script>
+
+
+
+<style scoped>
+.card-types {
+  padding: 0;
+}
+
+
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #fff;
+  border-bottom: 1px solid #e4e7ed;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+
+.card-types-grid {
+  padding: 20px;
+}
+
+
+.grid-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+
+.type-card {
+  transition: all 0.3s ease;
+}
+
+
+.type-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.type-id {
+  font-size: 12px;
+  color: #909399;
+}
+
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+
+.card-type-content {
+  margin-top: 0;
+}
+
+
+.content-section {
+  margin-bottom: 12px;
+}
+
+
+.content-section:last-child {
+  margin-bottom: 0;
+}
+
+
+.content-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #606266;
+}
+
+
+.json-schema {
+  background: #f5f7fa;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+
+.json-container {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+
+.json-buttons {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+
+.json-buttons .expand-btn,
+.json-buttons .collapse-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+
+.description {
+  font-size: 13px;
+  color: #606266;
+  margin: 0;
+  line-height: 1.6;
+}
+
+
+.date {
+  font-size: 12px;
+  color: #909399;
+}
+
+
+.json-error {
+  margin-top: 8px;
+}
+
+
+.json-hint {
+  margin-top: 8px;
+}
+
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+
+:deep(.el-divider__text) {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 卡片类型预览样式 */
+.preview-container {
+  padding: 10px 0;
+}
+
+
+.preview-card {
+  background: #f9fafb;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+
+.preview-card h3 {
+  margin: 0 0 12px 0;
+  color: #303133;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+
+.preview-description {
+  color: #606266;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  line-height: 1.6;
+}
+
+
+.preview-schema {
+  margin-top: 16px;
+}
+
+
+.preview-schema h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #606266;
+}
+
+
+.preview-schema .json-container .json-schema {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+
+.preview-schema .json-container .json-schema .key {
+  color: #9cdcfe;
+}
+
+
+.preview-schema .json-container .json-schema .string {
+  color: #ce9178;
+}
+
+
+.preview-schema .json-container .json-schema .number {
+  color: #b5cea8;
+}
+
+
+.preview-schema .json-container .json-schema .boolean {
+  color: #569cd6;
+}
+
+
+.preview-schema .json-container .json-schema .null {
+  color: #569cd6;
+}
+
+
+.preview-schema .json-container .json-schema .required {
+  color: #f44747;
+  font-weight: bold;
+}
+
+
+.preview-schema .json-container .json-schema .optional {
+  color: #6a9955;
+}
+
+
+.preview-schema .json-container .json-schema .property {
+  color: #9cdcfe;
+}
+
+
+.preview-schema .json-container .json-schema .type {
+  color: #4ec9b0;
+}
+
+
+.preview-schema .json-container .json-schema .default {
+  color: #ce9178;
+}
+
+
+.preview-schema .json-container .json-schema .array {
+  color: #4ec9b0;
+}
+
+
+.preview-schema .json-container .json-schema .object {
+  color: #4ec9b0;
+}
+
+
+.preview-schema .json-container .json-schema code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+
+.preview-schema .json-container .expand-btn,
+.preview-schema .json-container .collapse-btn {
+  margin-top: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+
+.json-schema {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+
+.json-schema code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+
+.json-schema .key {
+  color: #9cdcfe;
+}
+
+
+.json-schema .string {
+  color: #ce9178;
+}
+
+
+.json-schema .number {
+  color: #b5cea8;
+}
+
+
+.json-schema .boolean {
+  color: #569cd6;
+}
+
+
+.json-schema .null {
+  color: #569cd6;
+}
+
+
+.json-schema .required {
+  color: #f44747;
+  font-weight: bold;
+}
+
+
+.json-schema .optional {
+  color: #6a9955;
+}
+
+
+.json-schema .property {
+  color: #9cdcfe;
+}
+
+
+.json-schema .type {
+  color: #4ec9b0;
+}
+
+
+.json-schema .default {
+  color: #ce9178;
+}
+
+
+.json-schema .array {
+  color: #4ec9b0;
+}
+
+
+.json-schema .object {
+  color: #4ec9b0;
+}
+
+
+.preview-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* JSON Schema折叠样式 */
+.json-collapsed {
+  max-height: 100px;
+  overflow: hidden;
+  position: relative;
+}
+
+  .json-collapsed::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(transparent, #1e1e1e);
+    pointer-events: none;
+  }
+
+</style>

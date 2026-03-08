@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡片视图路由测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #303133;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .card {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e4e7ed;
+            border-radius: 4px;
+        }
+
+        .card h3 {
+            color: #409eff;
+            margin-bottom: 15px;
+        }
+
+        .menu-item {
+            display: inline-block;
+            padding: 12px 20px;
+            margin: 8px;
+            background: #ecf5ff;
+            color: #409eff;
+            border: 2px solid #409eff;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .menu-item:hover {
+            background: #409eff;
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #409eff;
+            color: white;
+            border-color: #409eff;
+        }
+
+        .current-url {
+            text-align: center;
+            padding: 15px;
+            background: #409eff;
+            color: white;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+        }
+
+        .test-section h2 {
+            color: #409eff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .test-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #409eff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #66b1ff;
+        }
+
+        .btn-warning {
+            background: #e6a23c;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #ebb563;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f5f7fa;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .status.success {
+            background: #f0f9ff;
+            color: #67c23a;
+            border: 1px solid #d9ecff;
+        }
+
+        .status.error {
+            background: #fef0f0;
+            color: #f56c6c;
+            border: 1px solid #fde2e2;
+        }
+
+        .error-message {
+            margin-top: 10px;
+            padding: 15px;
+            background: #fef0f0;
+            border-left: 4px solid #f56c6c;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 卡片视图路由测试</h1>
+
+        <div class="card">
+            <h3>📋 测试说明</h3>
+            <p>本页面用于测试卡片视图按钮的点击和跳转功能。</p>
+            <p>如果卡片视图按钮点击没有反应，可能是以下原因：</p>
+            <ul>
+                <li>路由配置问题</li>
+                <li>组件加载问题</li>
+                <li>CSS样式问题</li>
+                <li>JavaScript错误</li>
+            </ul>
+        </div>
+
+        <div class="current-url" id="currentUrl">
+            当前URL: / (加载中...)
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 卡片视图按钮测试</h2>
+            <div class="test-buttons">
+                <a href="/cards" class="menu-item" id="btn-cards" onclick="testCardsClick(event)">
+                    📄 卡片视图
+                </a>
+            </div>
+            <div class="status" id="cards-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 其他菜单按钮测试</h2>
+            <div class="test-buttons">
+                <a href="/" class="menu-item">🏠 工作台</a>
+                <a href="/projects" class="menu-item">📁 项目管理</a>
+                <a href="/workflows" class="menu-item">🔗 工作流</a>
+                <a href="/settings" class="menu-item">⚙️ 设置</a>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔄 页面内导航测试</h2>
+            <div class="test-buttons">
+                <button class="btn-primary" onclick="testNavigateToCards()">跳转到卡片视图</button>
+                <button class="btn-warning" onclick="testBrowserBack()">浏览器后退</button>
+            </div>
+            <div class="status" id="navigation-status"></div>
+        </div>
+
+        <div class="card">
+            <h3>🛠️ 调试工具</h3>
+            <div class="test-buttons">
+                <button class="btn-primary" onclick="checkRouterConfig()">检查路由配置</button>
+                <button class="btn-primary" onclick="checkElementExists()">检查元素存在</button>
+            </div>
+            <div class="status" id="debug-status"></div>
+        </div>
+    </div>
+
+    <script>
+        // 更新URL显示
+        function updateUrlDisplay() {
+            const url = window.location.pathname;
+            document.getElementById('currentUrl').textContent = `当前URL: ${url}`;
+
+            // 更新卡片视图按钮状态
+            const cardsBtn = document.getElementById('btn-cards');
+            if (url === '/cards') {
+                cardsBtn.classList.add('active');
+            } else {
+                cardsBtn.classList.remove('active');
+            }
+        }
+
+        // 测试卡片视图点击
+        function testCardsClick(event) {
+            event.preventDefault();
+            const status = document.getElementById('cards-status');
+
+            // 检查路由是否存在
+            if (!window.location.pathname.startsWith('/cards')) {
+                status.innerHTML = `
+                    <strong>✅ 按钮点击成功！</strong><br>
+                    计划跳转到: /cards<br>
+                    点击确认后页面将跳转<br><br>
+                    <em>如果点击后没有跳转，请检查：</em><br>
+                    1. 浏览器控制台是否有错误<br>
+                    2. 网络请求是否成功<br>
+                    3. 路由配置是否正确
+                `;
+            } else {
+                status.innerHTML = `
+                    <strong>✅ 已经在卡片视图页面！</strong><br>
+                    当前URL: ${window.location.pathname}
+                `;
+            }
+        }
+
+        // 跳转到卡片视图
+        function testNavigateToCards() {
+            window.location.href = '/cards';
+        }
+
+        // 浏览器后退
+        function testBrowserBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                alert('无法后退，这是第一个页面');
+            }
+        }
+
+        // 检查路由配置
+        function checkRouterConfig() {
+            const status = document.getElementById('debug-status');
+            const config = {
+                '卡片视图路由': '/cards',
+                '路由配置': '前端路由配置已检查',
+                '当前路径': window.location.pathname
+            };
+
+            let html = '<strong>🔍 路由配置检查：</strong><br>';
+            for (const [key, value] of Object.entries(config)) {
+                html += `<p><strong>${key}:</strong> ${value}</p>`;
+            }
+
+            status.innerHTML = html;
+            status.className = 'status success';
+        }
+
+        // 检查元素存在
+        function checkElementExists() {
+            const status = document.getElementById('debug-status');
+
+            const checks = [
+                {
+                    name: '卡片视图按钮',
+                    exists: !!document.getElementById('btn-cards')
+                },
+                {
+                    name: 'Vue应用',
+                    exists: !!document.querySelector('#app').__vue_app__
+                },
+                {
+                    name: 'Router实例',
+                    exists: !!document.querySelector('#app').__vue_app__?._context.app._instance?.appContext.provides
+                },
+                {
+                    name: '当前URL',
+                    value: window.location.pathname
+                }
+            ];
+
+            let html = '<strong>🔍 元素存在检查：</strong><br>';
+            let allPassed = true;
+
+            for (const check of checks) {
+                const passed = check.exists !== undefined ? check.exists : true;
+                const statusClass = passed ? 'success' : 'error';
+                const icon = passed ? '✅' : '❌';
+
+                html += `<p>${icon} <strong>${check.name}:</strong> ${passed ? '存在' : '不存在'} ${check.value ? '(' + check.value + ')' : ''}</p>`;
+
+                if (check.exists === false) {
+                    allPassed = false;
+                }
+            }
+
+            status.innerHTML = html;
+            status.className = allPassed ? 'status success' : 'status error';
+
+            if (allPassed) {
+                html += `<br><strong>💡 如果卡片视图按钮点击无效：</strong><br>`;
+                html += `<ul>`;
+                html += `<li>尝试强制刷新页面 (Ctrl + F5)</li>`;
+                html += `<li>清除浏览器缓存</li>`;
+                html += `<li>检查浏览器控制台错误</li>`;
+                html += `</ul>`;
+                status.innerHTML = html;
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', () => {
+            updateUrlDisplay();
+            console.log('卡片视图路由测试页面已加载');
+            console.log('当前URL:', window.location.href);
+
+            // 检查router-link是否正确配置
+            setTimeout(() => {
+                checkRouterConfig();
+                checkElementExists();
+            }, 1000);
+        });
+
+        // 监听路由变化
+        window.addEventListener('popstate', updateUrlDisplay);
+        window.addEventListener('hashchange', updateUrlDisplay);
+    </script>
+</body>
+</html>

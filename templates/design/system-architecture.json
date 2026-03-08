@@ -1,0 +1,63 @@
+{
+  "card_type": "技术架构",
+  "name": "系统架构图",
+  "description": "技术架构设计卡片",
+  "json_schema": {
+    "type": "object",
+    "properties": {
+      "architecture_pattern": {
+        "type": "string",
+        "enum": ["monolith", "microservices", "serverless", "event_driven"],
+        "default": "monolith"
+      },
+      "layers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string"},
+            "description": {"type": "string"},
+            "technologies": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      },
+      "communication_pattern": {
+        "type": "string",
+        "enum": ["rest_api", "grpc", "graphql", "websocket", "message_queue"],
+        "default": "rest_api"
+      },
+      "tech_stack": {
+        "type": "object",
+        "properties": {
+          "frontend": {"type": "array", "items": {"type": "string"}},
+          "backend": {"type": "array", "items": {"type": "string"}},
+          "database": {"type": "array", "items": {"type": "string"}},
+          "infrastructure": {"type": "array", "items": {"type": "string"}},
+          "devops": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "security": {
+        "type": "object",
+        "properties": {
+          "authentication": {"type": "string"},
+          "authorization": {"type": "string"},
+          "data_encryption": {"type": "string"}
+        }
+      },
+      "scalability": {
+        "type": "object",
+        "properties": {
+          "horizontal_scaling": {"type": "boolean"},
+          "vertical_scaling": {"type": "boolean"},
+          "load_balancing": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  },
+  "ai_params": {
+    "prompt_template": "基于以下需求设计技术架构：\n{{content}}\n\n请提供架构模式、技术栈选择、通信方式和扩展性设计。",
+    "temperature": 0.6,
+    "max_tokens": 1500
+  },
+  "default_view": "architecture"
+}

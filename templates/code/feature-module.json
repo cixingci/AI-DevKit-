@@ -1,0 +1,61 @@
+{
+  "card_type": "代码实现",
+  "name": "功能模块",
+  "description": "功能模块代码卡片",
+  "json_schema": {
+    "type": "object",
+    "properties": {
+      "module_name": {"type": "string"},
+      "description": {"type": "string"},
+      "programming_language": {
+        "type": "string",
+        "enum": ["python", "javascript", "typescript", "java", "go", "rust", "cpp", "csharp", "php", "ruby"]
+      },
+      "framework": {"type": "string"},
+      "architecture": {
+        "type": "string",
+        "enum": ["mvc", "microservices", "lambda", "function", "restful", "graphql"],
+        "default": "function"
+      },
+      "prerequisites": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "dependencies": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "functions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string"},
+            "description": {"type": "string"},
+            "parameters": {"type": "array", "items": {"type": "string"}},
+            "return_type": {"type": "string"},
+            "code": {"type": "string"}
+          }
+        }
+      },
+      "testing_requirements": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "deployment_config": {
+        "type": "object",
+        "properties": {
+          "environment": {"type": "string"},
+          "scaling": {"type": "string"},
+          "monitoring": {"type": "boolean"}
+        }
+      }
+    }
+  },
+  "ai_params": {
+    "prompt_template": "基于以下需求实现功能模块代码：\n{{content}}\n\n请提供编程语言、框架、依赖、函数实现和测试要求。",
+    "temperature": 0.5,
+    "max_tokens": 2000
+  },
+  "default_view": "code"
+}

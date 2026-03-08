@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>路由测试</title>
+</head>
+<body>
+    <h1>前端路由测试</h1>
+    <p>如果看到这个页面，说明前端正在运行</p>
+    <button onclick="testRoute('/')" id="btn-dashboard">测试工作台</button>
+    <button onclick="testRoute('/projects')" id="btn-projects">测试项目管理</button>
+    <button onclick="testRoute('/cards')" id="btn-cards">测试卡片视图</button>
+    <button onclick="testRoute('/workflows')" id="btn-workflows">测试工作流</button>
+    <button onclick="testRoute('/settings')" id="btn-settings">测试设置</button>
+
+    <script>
+        function testRoute(path) {
+            window.location.href = path;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+# 工作流：项目初始化
+# 功能：创建新项目时自动初始化基础卡片结构
+# 触发器：项目创建时自动触发
+
+#@node(description="创建项目概览卡片")
+project_overview = Card.Create(
+    project_id=trigger.project_id,
+    card_type="项目概览",
+    title="项目概览",
+    content={
+        "project_name": trigger.project_name,
+        "description": "",
+        "status": "planning",
+        "priority": "medium",
+        "start_date": "",
+        "end_date": "",
+        "technologies": [],
+        "team_size": 1
+    }
+)
+#</node>
+
+#@node(description="创建需求分析卡片")
+requirements = Card.Create(
+    project_id=trigger.project_id,
+    card_type="需求分析",
+    title="需求分析",
+    parent_id=project_overview.id,
+    content={
+        "user_stories": [],
+        "functional_requirements": [],
+        "non_functional_requirements": [],
+        "constraints": [],
+        "assumptions": []
+    }
+)
+#</node>
+
+#@node(description="创建技术架构卡片")
+architecture = Card.Create(
+    project_id=trigger.project_id,
+    card_type="技术架构",
+    title="技术架构",
+    parent_id=project_overview.id,
+    content={
+        "architecture_pattern": "",
+        "tech_stack": {
+            "frontend": "",
+            "backend": "",
+            "database": "",
+            "deployment": ""
+        },
+        "infrastructure": [],
+        "apis": []
+    }
+)
+#</node>
+
+#@node(description="创建开发计划卡片")
+development_plan = Card.Create(
+    project_id=trigger.project_id,
+    card_type="开发计划",
+    title="开发计划",
+    parent_id=project_overview.id,
+    content={
+        "phases": [],
+        "milestones": [],
+        "tasks": [],
+        "timeline": {},
+        "resources": []
+    }
+)
+#</node>
+
+#@node(description="创建项目管理卡片")
+project_management = Card.Create(
+    project_id=trigger.project_id,
+    card_type="项目管理",
+    title="项目管理",
+    parent_id=project_overview.id,
+    content={
+        "methodology": "agile",
+        "sprints": [],
+        "meetings": [],
+        "tools": [],
+        "documentation": []
+    }
+)
+#</node>
+
+#@node(description="等待所有卡片创建完成")
+wait_result = Logic.Wait(
+    tasks=[project_overview, requirements, architecture, development_plan, project_management]
+)
+#</node>
+
+#@node(description="设置项目状态")
+update_result = Project.Update(
+    project_id=trigger.project_id,
+    content={"status": "initialized", "initialized_at": "now()"}
+)
+#</node>

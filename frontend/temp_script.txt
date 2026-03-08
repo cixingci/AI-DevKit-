@@ -1,0 +1,232 @@
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Plus,
+  Refresh,
+  Search,
+  Edit,
+  Delete,
+  Document,
+  Folder,
+  View
+} from '@element-plus/icons-vue'
+import axios from 'axios'
+import type { FormInstance, FormRules } from 'element-plus'
+
+const router = useRouter()
+const loading = ref(false)
+const saving = ref(false)
+const searchQuery = ref('')
+const cardTypes = ref<any[]>([])
+const dialogVisible = ref(false)
+const dialogTitle = ref('新建卡片类型')
+const previewVisible = ref(false)
+const previewCardData = ref<any>({
+  id: 0,
+  name: '',
+  description: '',
+  json_schema: {}
+})
+
+const formRef = ref<FormInstance>()
+const jsonError = ref('')
+
+const form = ref({
+  id: 0,
+  name: '',
+  description: '',
+  json_schema: '{}'
+})
+
+const rules: FormRules = {
+  name: [
+    { required: true, message: '请输入类型名称', trigger: 'blur' },
+    { min: 1, max: 50, message: '类型名称长度在1到50个字符', trigger: 'blur' }
+  ],
+  description: [
+    { max: 200, message: '类型描述不能超过200个字符', trigger: 'blur' }
+  ],
+  json_schema: [
+    { required: true, message: '请输入JSON Schema', trigger: 'blur' },
+    { validator: validateJson, trigger: 'blur' }
+  ]
+}
+
+const filteredCardTypes = computed(() => {
+  if (!searchQuery.value) return cardTypes.value
+  const query = searchQuery.value.toLowerCase()
+  return cardTypes.value.filter(t =>
+    t.name.toLowerCase().includes(query) ||
+    (t.description && t.description.toLowerCase().includes(query))
+})
+
+const getTypeColor = (type: any) => {
+  const typeColors: Record<string, string> = {
+    '需求卡': 'primary',
+    '设计卡': 'success',
+    '功能卡': 'warning',
+    '测试卡': 'danger',
+    '文档卡': 'info'
+  }
+  return typeColors[type.name] || 'info'
+}
+
+const loadCardTypes = async () => {
+  loading.value = true
+  try {
+    const response = await axios.get('/api/v1/card-types')
+    cardTypes.value = response.data
+  } catch (error) {
+    console.error('加载卡片类型失败:', error)
+    ElMessage.error('加载卡片类型失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const createCardType = () => {
+  dialogTitle.value = '新建卡片类型'
+  form.value = {
+    id: 0,
+    name: '',
+    description: '',
+    json_schema: JSON.stringify({
+      type: 'object',
+      properties: {},
+      required: []
+    }, null, 2)
+  }
+  jsonError.value = ''
+  dialogVisible.value = true
+}
+
+const editCardType = (type: any) => {
+  dialogTitle.value = '编辑卡片类型'
+  form.value = {
+    id: type.id,
+    name: type.name,
+    description: type.description,
+    json_schema: JSON.stringify(type.json_schema, null, 2)
+  }
+  jsonError.value = ''
+  dialogVisible.value = true
+}
+
+const validateJsonSchema = () => {
+  try {
+    JSON.parse(form.value.json_schema)
+    jsonError.value = ''
+  } catch (e: any) {
+    jsonError.value = 'JSON格式错误: ' + e.message
+  }
+}
+
+const validateJson = (_rule: any, value: string, callback: any) => {
+  try {
+    JSON.parse(value)
+    callback()
+  } catch (e: any) {
+    callback(new Error('JSON格式错误: ' + e.message))
+  }
+}
+
+const saveCardType = async () => {
+  if (!formRef.value) return
+
+  await formRef.value.validate(async (valid) => {
+    if (valid) {
+      saving.value = true
+      try {
+        const endpoint = form.value.id ? `/api/v1/card-types/${form.value.id}` : '/api/v1/card-types'
+        const method = form.value.id ? 'put' : 'post'
+
+        const response = await axios[method](endpoint, {
+          name: form.value.name,
+          description: form.value.description,
+          json_schema: JSON.parse(form.value.json_schema)
+        })
+
+        ElMessage.success(form.value.id ? '更新成功' : '创建成功')
+        dialogVisible.value = false
+        await loadCardTypes()
+      } catch (error) {
+        console.error('保存失败:', error)
+        ElMessage.error('保存失败')
+      } finally {
+        saving.value = false
+      }
+    }
+  })
+}
+
+const isJsonCollapsed = (obj: any) => {
+  const jsonString = JSON.stringify(obj)
+  return jsonString.length > 500
+}
+
+const formatJson = (obj: any) => {
+  try {
+    return JSON.stringify(obj, null, 2)
+  } catch (e) {
+    return obj
+  }
+}
+
+const expandJson = (obj: any) => {
+  // TODO: 实现JSON展开功能
+  console.log('展开JSON:', obj)
+}
+
+const collapseJson = (obj: any) => {
+  // TODO: 实现JSON收起功能
+  console.log('收起JSON:', obj)
+}
+
+    await axios.delete(`/api/v1/card-types/${id}`)
+    ElMessage.success('删除成功')
+    await loadCardTypes()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+const previewCardType = (type: any) => {
+  previewCardData.value = {
+    id: type.id,
+    name: type.name,
+    description: type.description,
+    json_schema: type.json_schema || {}
+  }
+  previewVisible.value = true
+}
+
+const createCardFromTemplate = () => {
+  ElMessage.success('卡片创建功能即将推出，当前仅支持预览')
+  previewVisible.value = false
+  // TODO: 跳转到卡片创建页面并预填充卡片类型
+  // router.push('/cards/create')
+}
+
+const formatJson = (obj: any) => {
+  try {
+    return JSON.stringify(obj, null, 2)
+  } catch (e) {
+    return obj
+  }
+}
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN')
+}
+
+onMounted(() => {
+  loadCardTypes()
+})
+</script>

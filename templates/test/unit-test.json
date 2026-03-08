@@ -1,0 +1,68 @@
+{
+  "card_type": "测试实现",
+  "name": "单元测试",
+  "description": "单元测试卡片",
+  "json_schema": {
+    "type": "object",
+    "properties": {
+      "test_type": {
+        "type": "string",
+        "enum": ["unit", "integration", "e2e", "performance", "security"],
+        "default": "unit"
+      },
+      "test_framework": {
+        "type": "string",
+        "enum": ["pytest", "jest", "mocha", "junit", "testng", "cypress", "selenium", "k6"]
+      },
+      "target_module": {"type": "string"},
+      "test_cases": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string"},
+            "description": {"type": "string"},
+            "input": {"type": "object"},
+            "expected_output": {"type": "object"},
+            "status": {
+              "type": "string",
+              "enum": ["pending", "pass", "fail", "skipped"],
+              "default": "pending"
+            }
+          }
+        }
+      },
+      "setup": {
+        "type": "object",
+        "properties": {
+          "before_tests": {"type": "string"},
+          "after_tests": {"type": "string"},
+          "teardown": {"type": "string"}
+        }
+      },
+      "coverage_goals": {
+        "type": "object",
+        "properties": {
+          "line_coverage": {"type": "string"},
+          "branch_coverage": {"type": "string"},
+          "function_coverage": {"type": "string"}
+        }
+      },
+      "ci_integration": {
+        "type": "boolean",
+        "default": true
+      },
+      "test_environment": {
+        "type": "string",
+        "enum": ["development", "staging", "production"],
+        "default": "development"
+      }
+    }
+  },
+  "ai_params": {
+    "prompt_template": "为以下模块创建单元测试：\n{{content}}\n\n请提供测试用例、测试框架、测试覆盖率目标和CI集成配置。",
+    "temperature": 0.4,
+    "max_tokens": 1500
+  },
+  "default_view": "test"
+}

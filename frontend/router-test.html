@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>路由测试</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+</head>
+<body>
+    <div id="app">
+        <el-container>
+            <el-header>
+                <el-menu mode="horizontal" router :default-active="route.path">
+                    <el-menu-item index="/">工作台</el-menu-item>
+                    <el-menu-item index="/projects">项目管理</el-menu-item>
+                    <el-menu-item index="/cards">卡片视图</el-menu-item>
+                    <el-menu-item index="/workflows">工作流</el-menu-item>
+                    <el-menu-item index="/settings">设置</el-menu-item>
+                </el-menu>
+            </el-header>
+            <el-main>
+                <router-view></router-view>
+            </el-main>
+        </el-container>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+        const { createRouter, createWebHistory, useRouter, useRoute } = VueRouter;
+
+        const routes = [
+            { path: '/', component: { template: '<div><h1>工作台</h1><p>当前路由: {{ route.path }}</p></div>', setup() { const route = useRoute(); return { route }; } } },
+            { path: '/projects', component: { template: '<div><h1>项目管理</h1><p>当前路由: {{ route.path }}</p></div>', setup() { const route = useRoute(); return { route }; } } },
+            { path: '/cards', component: { template: '<div><h1>卡片视图</h1><p>当前路由: {{ route.path }}</p></div>', setup() { const route = useRoute(); return { route }; } } },
+            { path: '/workflows', component: { template: '<div><h1>工作流</h1><p>当前路由: {{ route.path }}</p></div>', setup() { const route = useRoute(); return { route }; } } },
+            { path: '/settings', component: { template: '<div><h1>设置</h1><p>当前路由: {{ route.path }}</p></div>', setup() { const route = useRoute(); return { route }; } } }
+        ];
+
+        const router = createRouter({
+            history: createWebHistory(),
+            routes
+        });
+
+        const app = createApp({ setup() { const route = useRoute(); return { route }; } });
+        app.use(router);
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html>
